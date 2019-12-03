@@ -4,16 +4,14 @@ import torch
 import torch.nn as nn
 
 
-class CBOW(nn.Module):
+class Autoencoder(nn.Module):
 
-    def __init__(self, attributes, vocab_size, embedding_size=100, window=5,
-                 negative_sampling=5):
-        super(CBOW, self).__init__()
+    def __init__(self, attributes, vocab_size, embedding_size):
+        super(Autoencoder,self).__init__()
         self.attributes = attributes
+        self.vocab_size = vocab_size
         self.embedding_size = embedding_size
-        self.window = window
-        self.negative_sampling = negative_sampling
-        
+
         if not isinstance(self.embedding_size, dict):
             self.embedding_size = {key: embedding_size for key in attributes}
 
@@ -32,32 +30,20 @@ class CBOW(nn.Module):
     def embedding_layer(self, attribute):
         return getattr(self, 'embed_' + attribute).weight.data.cpu()
 
-    def embed(self, x, lens):
+    def encode(self, x):
         new_x = []
-        beg = (lens < 2 * self.window).sum()
         
         for i, key in enumerate(self.attributes):
             embedder = getattr(self, 'embed_' + key)
             if key == 'lat_lon':
-                new_x.append(embedder(x[:, :, i:].float()))
+                new_x.append(embedder(x[:, i:].float()))
             else:
-                new_x.append(embedder(x[:, :, i]))
+                new_x.append(embedder(x[:, i]))
+            new_x[-1] = torch.sigmoid(new_x[-1])
 
-        x = torch.cat(new_x, dim=-1)
+        return torch.cat(new_x, dim=-1)
 
-        # To get around shorter context windows
-        x_mean = torch.zeros(beg, x.size(2))
-        for i, sample in enumerate(x[:beg]):
-            x_mean[i] = sample[:lens[i]].mean(dim=0)
-
-        if x.is_cuda:
-            x_mean = x_mean.cuda()
-
-        x = torch.cat([x_mean, x[beg:].mean(dim=1)])
-
-        return x
-
-    def classify(self, x):
+    def decode(self, x):
         output = []
 
         for i, key in enumerate(self.attributes):
@@ -66,15 +52,19 @@ class CBOW(nn.Module):
 
         return output
 
-    def forward(self, x, lens):
-        x = self.embed(x, lens)
-        x = self.classify(x)
+    def forward(self, x):
+        x = self.encode(x)
+        x = self.decode(x)
         return x
 
     def fit(self, x, lrate=0.025, min_lrate=0.0001, epochs=100,
             batch_size=1000, patience=-1, threshold=0.001, cuda=False,
             verbose=False):
-        train_x, train_y, lengths = self._prepare_training_data(x)
+
+        train_x = nn.utils.rnn.pad_sequence([torch.Tensor(seq).long() for seq in x],
+                                      batch_first=True, padding_value=-1)
+        train_x = train_x.view(train_x.size(0) * train_x.size(1), -1)
+        train_x = train_x[train_x.sum(dim=1) >= 0]
 
         optimizer = torch.optim.Adam(self.parameters(), lr=lrate)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
@@ -97,21 +87,16 @@ class CBOW(nn.Module):
 
             for batch in sample_idxs.split(batch_size):
                 optimizer.zero_grad()
-                lens = lengths[batch]
-                x = train_x[batch][lens.argsort()].long()
-                y = torch.Tensor(train_y[batch])[lens.argsort()].long()
-                lens = lens[lens.argsort()].long()
+                x = train_x[batch]
 
                 if cuda:
                     x = x.cuda()
-                    y = y.cuda()
-                    lens = lens.cuda()
 
-                pred_y = self(x, lens)
+                pred_y = self(x)
                 loss = 0
 
                 for i, pred in enumerate(pred_y):
-                    loss += loss_func(pred, y[:, i])
+                    loss += loss_func(pred, x[:, i])
 
                 train_loss += loss
                 loss.backward()
@@ -134,31 +119,3 @@ class CBOW(nn.Module):
                 break
 
         return self
-
-    def _prepare_training_data(self, x):
-        """
-        Parameters
-        ----------
-        x : array-like of shape (n_samples, max_length, n_features)
-            Description.
-        """
-        new_x, new_y, lengths = [], [], []
-
-        for sample in x:
-            for i in range(0, len(sample)):
-                input_sample = []
-                input_sample.extend(sample[i-self.window:i])
-                input_sample.extend(sample[i+1:i+1+self.window])
-                missed = 2 * self.window - len(input_sample)
-
-                lengths.append(len(input_sample))
-
-                if missed == self.window:
-                    lengths[-1] = 2 * self.window
-                    input_sample.extend(input_sample)
-                elif missed > 0:
-                    input_sample.extend(torch.zeros(missed, len(sample[i])).int())
-                new_x.append(input_sample)
-                new_y.append(sample[i])
-
-        return torch.Tensor(new_x), torch.Tensor(new_y), torch.Tensor(lengths)
