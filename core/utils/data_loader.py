@@ -48,6 +48,7 @@ def get_trajectories(file, tid_col='tid', label_col='label', geo_precision=8, dr
     x = []
     y = []
     tids = df[tid_col].unique()
+    max_length = 0
 
     for idx, tid in tqdm(enumerate(tids), desc='Processing trajectories', total=len(tids)):
         traj = df.loc[df[tid_col].isin([tid])]
@@ -61,6 +62,9 @@ def get_trajectories(file, tid_col='tid', label_col='label', geo_precision=8, dr
                 loc_list.append(bin_geohash(lat, lon, geo_precision))
 
             x[-1] = np.hstack([x[-1], np.array(loc_list)]).tolist()
+
+        if len(traj) > max_length:
+            max_length = len(traj)
 
         label = traj[label_col].iloc[0]
         y.append(label)
@@ -80,4 +84,4 @@ def get_trajectories(file, tid_col='tid', label_col='label', geo_precision=8, dr
     print(cur_date_time(), '| Trajectories:   {: >6}'.format(len(tids)))
     print(cur_date_time(), '| Labels/classes: {: >6}'.format(len(label_encoder.classes_)))
 
-    return (keys, attr_sizes, attr_encoders, tids, x, y)
+    return (keys, attr_sizes, attr_encoders, max_length, tids, x, y)

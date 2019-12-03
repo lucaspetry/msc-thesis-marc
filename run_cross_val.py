@@ -3,7 +3,7 @@ from core.utils.data_loader import get_trajectories
 from core.utils.nested_cross_val import NestedCrossValidator
 from core.utils.metrics import compute_acc_acc5_f1_prec_rec
 from core.models import MARC
-from core.embedding.cbow import CBOW
+from core.embedding import CBOW, PCAEmbedder, Autoencoder
 
 import argparse
 import random
@@ -60,10 +60,10 @@ print('')
 #   LOAD DATA
 ###############################################################################
 print_header('LOAD DATA')
-(attr, attr_sizes,
- attr_encoders, tids, all_x, all_y) = get_trajectories(file=args.data_file,
-                                                       tid_col=args.tid_col,
-                                                       label_col=args.label_col)
+(attr, attr_sizes, attr_encoders,
+ max_length, tids, all_x, all_y) = get_trajectories(file=args.data_file,
+                                                    tid_col=args.tid_col,
+                                                    label_col=args.label_col)
 num_classes = len(set(all_y))
 print('')
 
@@ -71,19 +71,19 @@ print('')
 ###############################################################################
 #   BUILD EMBEDDINGS
 ###############################################################################
-print_header('EMBEDDING TRAINING')
-embedder = CBOW(attributes=attr, vocab_size=attr_sizes,
-                embedding_size=args.embedding_size,
-                window=1,
-                negative_sampling=5)
+# print_header('EMBEDDING TRAINING')
+# embedder = CBOW(attributes=attr, vocab_size=attr_sizes,
+#                 embedding_size=args.embedding_size,
+#                 window=1,
+#                 negative_sampling=5)
 
-if args.cuda:
-    embedder = embedder.cuda()
+# if args.cuda:
+#     embedder = embedder.cuda()
 
-embedder.train_model(x=all_x, lrate=0.025, min_lrate=0.0001, epochs=500,
-                     batch_size=1000, patience=20, threshold=0.01,
-                     cuda=args.cuda, verbose=True)
-print('')
+# embedder.fit(x=all_x, lrate=0.025, min_lrate=0.0001, epochs=500,
+#              batch_size=1000, patience=20, threshold=0.01,
+#              cuda=args.cuda, verbose=True)
+# print('')
 
 
 ###############################################################################
@@ -110,6 +110,18 @@ for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, a
                  merge_type=args.merge_type, rnn_cell=args.rnn_cell,
                  dropout=args.dropout)
 
+    # print_header('EMBEDDING TRAINING')
+    embedder = Autoencoder(attributes=attr, vocab_size=attr_sizes,
+                           embedding_size=args.embedding_size)
+
+    if args.cuda:
+        embedder = embedder.cuda()
+
+    embedder.fit(x=np.concatenate([train_x, val_x]), lrate=0.025, min_lrate=0.0001, epochs=500,
+                 batch_size=1000, patience=20, threshold=0.01,
+                 cuda=args.cuda, verbose=False)
+    # print('')
+
     model.init_embedding_layer({a: embedder.embedding_layer(a) for a in attr},
                                trainable=True)
 
@@ -118,7 +130,7 @@ for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, a
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lrate)
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', patience=10, factor=0.9)
-    loss_func = nn.CrossEntropyLoss()
+    loss_func = nn.NLLLoss()
 
     best_val_loss = float('inf')
     best_val_epoch = -1

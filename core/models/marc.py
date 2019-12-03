@@ -92,15 +92,13 @@ class MARC(nn.Module):
 
         return x
 
-    def forward(self, x, lengths=None):
+    def forward(self, x, lengths):
         x = self.embed(x)
         x = self.hidden_dropout(x)
+        
         x, _ = self.rnn(x)
-
-        if lengths is not None:
-            x = x[range(len(lengths)), lengths - 1]
-        else:
-            x = x[:, -1]
+        x = x[range(len(lengths)), lengths - 1]
         x = self.rnn_dropout(x)
+
         x = self.classifier(x)
-        return x
+        return x.log_softmax(dim=-1)
