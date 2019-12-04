@@ -133,7 +133,7 @@ for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, a
                          patience=args.embedder_patience, threshold=0.01,
                          cuda=args.cuda, verbose=False)
             model.init_embedding_layer({a: embedder.embedding_layer(a) for a in attr},
-                                       trainable=model.embedding_trainable)
+                                       trainable=args.model_embedding_trainable)
         else:
             raise Exception('PCA is currently not working!')
 
