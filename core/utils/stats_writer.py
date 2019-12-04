@@ -1,3 +1,30 @@
+from datetime import datetime
+from scipy.stats import sem, t
+import pandas as pd
+
+
+def get_confidence_interval(data, confidence=0.95):
+    """
+    Parameters
+    ----------
+    data : array-like of shape (n_samples, n_features)
+        The batch of samples for which to compute the mean and the confidence
+        interval. The stats are computed for each individual feature.
+    confidence : float (default=0.95)
+        The confidence of the interval.
+
+    Returns
+    -------
+    stats : tuple of arrays of shape (n_features)
+        A tuple where the first element contains the means and the second
+        element the margins of the intervals.
+    """
+    n = len(data)
+    m = data.mean(0)
+    std_err = sem(data, axis=0)
+    h = std_err * t.ppf((1 + confidence) / 2, n - 1)
+    return m, h
+
 
 class MetricsLogger:
 
@@ -11,22 +38,17 @@ class MetricsLogger:
                 self._stats[key] = []
 
         if self._timestamp:
-            self._stats['timestamp'] = {}
+            self._stats['timestamp'] = []
 
-    def log(self, **kwargs):
+    def log(self, file=None, **kwargs):
         if self._timestamp:
             self._stats['timestamp'].append(datetime.now())
 
         for key, value in kwargs.items():
-            pass
+            self._stats[key].append(value)
+        
+        if file is not None:
+            self.save(file)
 
     def save(self, file):
-        self._df.to_csv(file, index=False)
-
-    def load(self, file):
-        if os.path.isfile(file):
-            self._df = pd.read_csv(file)
-        else:
-            print("WARNING: File '" + file + "' not found!")
-
-        return self
+        pd.DataFrame(self._stats).to_csv(file, index=False)

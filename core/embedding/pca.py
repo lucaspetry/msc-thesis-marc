@@ -9,15 +9,21 @@ class PCAEmbedder:
         self.attributes = attributes
         self.vocab_size = vocab_size
         self.embedding_size = embedding_size
+        self.embedding_idxs = {}
+        count = 0
+
+        for attr in self.attributes:
+            self.embedding_idxs[attr] = count
+            count += self.vocab_size[attr]
 
         if not isinstance(self.embedding_size, dict):
             self.embedding_size = {key: embedding_size for key in attributes}
 
         categories = [range(self.vocab_size[a]) for a in self.attributes]
         self.one_hot_encoder = OneHotEncoder(categories)
-        self.pca = PCA(n_components=embedding_size)
+        self.pca = PCA(n_components=sum(embedding_size.values()))
 
-    def embedding_layer(self, x):
+    def embedding_layer(self, attribute):
         return self.pca.components_.T
 
     def fit(self, x):
