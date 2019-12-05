@@ -1,4 +1,6 @@
 from ..logger import cur_date_time
+from ..utils import MetricsLogger
+from ..utils import compute_acc_acc5_f1_prec_rec
 
 import torch
 import torch.nn as nn
@@ -58,8 +60,9 @@ class Autoencoder(nn.Module):
         return x
 
     def fit(self, x, lrate=0.025, min_lrate=0.0001, epochs=100,
-            batch_size=1000, patience=-1, threshold=0.001, cuda=False,
-            verbose=False):
+            batch_size=1000, patience=-1, threshold=0.001, log_file=None,
+            cuda=False, verbose=False):
+        model_logger = MetricsLogger(keys=['epoch', 'train_loss'], timestamp=True)
 
         train_x = nn.utils.rnn.pad_sequence([torch.Tensor(seq).long() for seq in x],
                                       batch_first=True, padding_value=-1)
@@ -105,6 +108,11 @@ class Autoencoder(nn.Module):
             if verbose:
                 print('{} | Epoch {: >4}/{} | Loss: {:.4f}'.format(
                     cur_date_time(), epoch, epochs, train_loss))
+
+            if log_file is not None:
+                model_logger.log(file=log_file,
+                                 **{'epoch': epoch, 'train_loss': train_loss.item()})
+
             scheduler.step(train_loss)
 
             if best_loss - train_loss > threshold:

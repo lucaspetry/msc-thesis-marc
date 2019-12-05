@@ -111,6 +111,10 @@ ARGS = [
         'help': ''
     },
     {
+        'name' : '--save-models', 'type': bool,
+        'help': ''
+    },
+    {
         'name' : '--verbose', 'type': bool,
         'help': ''
     },
