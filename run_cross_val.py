@@ -55,6 +55,8 @@ except Exception as e:
     print('{} | Warning: {}'.format(cur_date_time(), e))
 
 RES_FILE_CV = path.join(EXP_FOLDER, 'cross_validation_results.csv')
+RES_FILE_FOLD_MODEL = path.join(EXP_FOLDER, 'model_fold_{:02d}.{}')
+RES_FILE_FOLD_EMBEDDER = path.join(EXP_FOLDER, 'embedder_fold_{:02d}.{}')
 
 print('')
 
@@ -99,7 +101,13 @@ total_folds = args.data_folds * (args.data_folds - 1)
 stats_names = ['Accuracy @ 1', 'Accuracy @ 5', 'Macro-F1', 'Macro-Precision', 'Macro-Recall']
 stats = []
 
+model_log_cols = ['epoch', 'train_loss', 'train_acc_1', 'train_acc_5',
+                  'train_macro_f1', 'train_macro_precision',
+                  'train_macro_recall', 'val_loss', 'val_acc_1', 'val_acc_5',
+                  'val_macro_f1', 'val_macro_precision', 'val_macro_recall']
+
 cv_logger = MetricsLogger(keys=np.concatenate([['fold'], stats_names]), timestamp=True)
+model_logger = MetricsLogger(keys=model_log_cols, timestamp=True)
 
 
 for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, all_y)):
@@ -109,6 +117,11 @@ for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, a
     val_y = all_y[val_idxs]
     test_x = all_x[test_idxs]
     test_y = all_y[test_idxs]
+
+    model_log_file = RES_FILE_FOLD_MODEL.format(fold + 1, 'csv')
+    model_file = RES_FILE_FOLD_MODEL.format(fold + 1, 'pkl')
+    embedder_log_file = RES_FILE_FOLD_EMBEDDER.format(fold + 1, 'csv')
+    embedder_file = RES_FILE_FOLD_EMBEDDER.format(fold + 1, 'pkl')
 
     model = MARC(attributes=attr,
                  vocab_size=attr_sizes,
@@ -131,7 +144,11 @@ for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, a
                          epochs=args.embedder_epochs,
                          batch_size=args.embedder_bs_train,
                          patience=args.embedder_patience, threshold=0.01,
+                         log_file=embedder_log_file,
                          cuda=args.cuda, verbose=False)
+            if args.save_models:
+                torch.save(embedder.state_dict(), embedder_file)
+
             model.init_embedding_layer({a: embedder.embedding_layer(a) for a in attr},
                                        trainable=args.model_embedding_trainable)
         else:
@@ -220,18 +237,26 @@ for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, a
                   'Train {{ Loss: {:8.4f}  Acc: {:.4f} F1: {:.4f} }}'.format(train_loss, train_acc, train_f1),
                   'Val {{ Loss: {:8.4f}  Acc: {:.4f} F1: {:.4f} }}'.format(val_loss, val_acc, val_f1))
 
+        log_vals = [epoch, train_loss.item(), train_acc, train_acc5, train_f1,
+                    train_prec, train_rec, val_loss.item(), val_acc, val_acc5,
+                    val_f1, val_prec, val_rec]
+        model_logger.log(file=model_log_file, **dict(zip(model_log_cols,
+                                                         log_vals)))
+
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_val_epoch = epoch
             best_model = model.state_dict()
 
         if early_stop and epoch - best_val_epoch > args.model_patience:
-            # print('Early stopping!')
             break
 
     # Test model
     model.load_state_dict(best_model)
     model.eval()
+
+    if args.save_models:
+        torch.save(model.state_dict(), model_file)
 
     y_true = torch.Tensor(test_y).long()
     y_pred = []

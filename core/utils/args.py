@@ -5,44 +5,45 @@ from os import path
 ARGS = [
     {
         'name' : 'data.file', 'type': str,
-        'help': ''
+        'help': 'The CSV data file to be used'
     },
     {
         'name' : '--data.tid_col', 'type': str, 'default': 'tid',
-        'help': ''
+        'help': 'Name of the column in the data file that represents trajectory IDs'
     },
     {
         'name' : '--data.label_col', 'type': str, 'default': 'label',
-        'help': ''
+        'help': 'Name of the column in the data file that represents trajectory labels'
     },
     {
         'name' : '--data.folds', 'type': int, 'default': 5,
-        'help': ''
+        'help': 'The number of folds of the k x (k-1)-fold nested cross-validation'
     },
     {
         'name' : '--embedder.type', 'type': str, 'default': 'random',
         'choices': ['random', 'word2vec', 'autoencoder', 'pca'],
-        'help': ""
+        'help': "The embedding technique used for pretraining embeddings"
     },
     {
         'name' : '--embedder.lrate', 'type': float, 'default': 0.025,
-        'help': ''
+        'help': 'The initial learning rate for training the embedder model'
     },
     {
         'name' : '--embedder.min_lrate', 'type': float, 'default': 0.0001,
-        'help': ''
+        'help': 'The minimum learning rate for training the embedder model'
     },
     {
         'name' : '--embedder.epochs', 'type': int, 'default': 500,
-        'help': ''
+        'help': 'The maximum number of epochs for which to train the embedder model'
     },
     {
         'name' : '--embedder.bs_train', 'type': int, 'default': 1000,
-        'help': ''
+        'help': 'The training batch size for the embedder model'
     },
     {
         'name' : '--embedder.patience', 'type': int, 'default': 20,
-        'help': ''
+        'help': 'The number of epochs without improvement to wait before early' + \
+                ' stopping the training of the embedder model'
     },
     {
         'name' : '--model.embedding_size', 'type': int, 'default': 0,
@@ -54,45 +55,46 @@ ARGS = [
     },
     {
         'name' : '--model.embedding_trainable', 'type': bool,
-        'help': ''
+        'help': 'Whether or not the embedding layer is trainable in the classifier model'
     },
     {
         'name' : '--model.merge_type', 'type': str, 'default': 'concatenate',
-        'choices': ['add', 'average', 'concatenate'],
-        'help': ''
+        'choices': ['concatenate'],
+        'help': 'The type of merge operation for merging attribute embeddings in the classifier model'
     },
     {
         'name' : '--model.rnn_type', 'type': str, 'default': 'lstm',
         'choices': ['lstm', 'gru'],
-        'help': ''
+        'help': 'The type of RNN cells of the classifier model'
     },
     {
         'name' : '--model.rnn_cells', 'type': int, 'default': 100,
-        'help': ''
+        'help': 'The number of RNN cells used in the recurrent layer of the classifier model'
     },
     {
         'name' : '--model.dropout', 'type': float, 'default': 0.5,
-        'help': ''
+        'help': 'The dropout rate of the classifier model'
     },
     {
         'name' : '--model.lrate', 'type': float, 'default': 0.001,
-        'help': ''
+        'help': 'The initial learning rate for training the classifier model'
     },
     {
         'name' : '--model.epochs', 'type': int, 'default': 1000,
-        'help': ''
+        'help': 'The maximum number of epochs for which to train the classifier model'
     },
     {
         'name' : '--model.bs_train', 'type': int, 'default': 128,
-        'help': ''
+        'help': 'The training batch size for the classifier model'
     },
     {
         'name' : '--model.bs_test', 'type': int, 'default': 512,
-        'help': ''
+        'help': 'The validation/testing batch size for the classifier model'
     },
     {
         'name' : '--model.patience', 'type': int, 'default': -1,
-        'help': ''
+        'help': 'The number of epochs without improvement to wait before early' + \
+                ' stopping the training of the classifier model'
     },
     {
         'name' : '--results.confidence', 'type': float, 'default': 0.95,
@@ -108,19 +110,20 @@ ARGS = [
     },
     {
         'name' : '--seed', 'type': int, 'default': 1234,
-        'help': ''
+        'help': 'The random seed used in the cross-validation split and for' + \
+                ' running the models'
     },
     {
         'name' : '--save-models', 'type': bool,
-        'help': ''
+        'help': 'If passed, saves the embedder and classifier models for each fold'
     },
     {
         'name' : '--verbose', 'type': bool,
-        'help': ''
+        'help': 'If passed, prints more detailed information during the execution of the script'
     },
     {
         'name' : '--cuda', 'type': bool,
-        'help': ''
+        'help': 'If passed, trains the models on any available GPUs'
     }
 ]
 
@@ -135,8 +138,11 @@ def parse_args():
             arg['help'] = ''
         if 'default' not in arg:
             arg['default'] = None
+
         if arg['default'] is not None:
             arg['help'] += ' (default={}).'.format(arg['default'])
+        else:
+            arg['help'] += '.'
 
         if arg['type'] == bool:
             argparser.add_argument(arg['name'], action='store_true',
