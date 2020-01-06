@@ -6,11 +6,11 @@ import torch
 import torch.nn as nn
 
 
-class CBOW(nn.Module):
+class GroupedCBOW(nn.Module):
 
     def __init__(self, attributes, vocab_size, embedding_size=100, window=5,
                  negative_sampling=5):
-        super(CBOW, self).__init__()
+        super(GroupedCBOW, self).__init__()
         self.attributes = attributes
         self.embedding_size = embedding_size
         self.window = window

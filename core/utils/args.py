@@ -21,7 +21,7 @@ ARGS = [
     },
     {
         'name' : '--embedder.type', 'type': str, 'default': 'random',
-        'choices': ['random', 'word2vec', 'autoencoder', 'pca'],
+        'choices': ['random', 'gcbow', 'icbow', 'autoencoder', 'pca'],
         'help': "The embedding technique used for pretraining embeddings"
     },
     {
