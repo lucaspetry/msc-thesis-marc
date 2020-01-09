@@ -61,7 +61,7 @@ class Autoencoder(nn.Module):
 
     def fit(self, x, lrate=0.025, min_lrate=0.0001, epochs=100,
             batch_size=1000, patience=-1, threshold=0.001, log_file=None,
-            cuda=False, verbose=False):
+            cuda=False, n_jobs=-1, verbose=False):
         model_logger = MetricsLogger(keys=['epoch', 'train_loss'], timestamp=True)
 
         train_x = nn.utils.rnn.pad_sequence([torch.Tensor(seq).long() for seq in x],

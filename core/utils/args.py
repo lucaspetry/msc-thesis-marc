@@ -25,6 +25,10 @@ ARGS = [
         'help': "The embedding technique used for pretraining embeddings"
     },
     {
+        'name' : '--embedder.window', 'type': int, 'default': 1,
+        'help': "The context window size of the embedder (for 'gcbow' and 'icbow' only)"
+    },
+    {
         'name' : '--embedder.lrate', 'type': float, 'default': 0.025,
         'help': 'The initial learning rate for training the embedder model'
     },
@@ -103,6 +107,10 @@ ARGS = [
     {
         'name' : '--results.folder', 'type': str, 'default': 'results',
         'help': "The folder where all models and results files will be saved"
+    },
+    {
+        'name' : '--n_jobs', 'type': int, 'default': 1,
+        'help': 'The number of jobs to use when parallelization is possible'
     },
     {
         'name' : '--prefix', 'type': str, 'default': '',

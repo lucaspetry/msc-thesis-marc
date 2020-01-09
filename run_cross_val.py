@@ -131,7 +131,9 @@ for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, a
                  dropout=args.model_dropout)
 
     embedder = get_embedder(attributes=attr, vocab_size=attr_sizes,
-                            embedding_size=EMBEDDING_SIZE, embedder_type=args.embedder_type)
+                            embedding_size=EMBEDDING_SIZE,
+                            embedder_type=args.embedder_type,
+                            embedder_window=args.embedder_window)
 
     if embedder is not None:
         if args.cuda:
@@ -145,7 +147,7 @@ for fold, (train_idxs, val_idxs, test_idxs) in enumerate(cross_val.split(tids, a
                          batch_size=args.embedder_bs_train,
                          patience=args.embedder_patience, threshold=0.01,
                          log_file=embedder_log_file,
-                         cuda=args.cuda, verbose=False)
+                         cuda=args.cuda, n_jobs=args.n_jobs, verbose=False)
             if args.save_models:
                 torch.save(embedder.state_dict(), embedder_file)
 

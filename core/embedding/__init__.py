@@ -8,13 +8,13 @@ __all__ = ['Autoencoder',
 		   'IsolatedCBOW',
            'PCAEmbedder']
 
-def get_embedder(attributes, vocab_size, embedding_size, embedder_type):
+def get_embedder(attributes, vocab_size, embedding_size, embedder_type, embedder_window=None):
 	if embedder_type == 'gcbow':
 		return GroupedCBOW(attributes=attributes, vocab_size=vocab_size,
-                    	   embedding_size=embedding_size, window=3)
+                    	   embedding_size=embedding_size, window=embedder_window)
 	elif embedder_type == 'icbow':
 		return IsolatedCBOW(attributes=attributes, vocab_size=vocab_size,
-                    	    embedding_size=embedding_size, window=3)
+                    	    embedding_size=embedding_size, window=embedder_window)
 	elif embedder_type == 'autoencoder':
 		return Autoencoder(attributes=attributes, vocab_size=vocab_size,
                            embedding_size=embedding_size)
