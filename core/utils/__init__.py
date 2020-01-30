@@ -1,5 +1,6 @@
 from .args import parse_args
 from .args import get_file_prefix
+from .args import parse_file_prefix
 from .data_loader import get_trajectories
 from .metrics import *
 from .nested_cross_val import NestedCrossValidator

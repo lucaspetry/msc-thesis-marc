@@ -1,5 +1,6 @@
 import argparse
 from os import path
+import re
 
 
 ARGS = [
@@ -180,3 +181,27 @@ def get_file_prefix(args):
     file += 'rnn_cells_{}{}'.format(args.model_rnn_cells, separator)
     file += 'seed_{}'.format(args.seed)
     return file
+
+
+def parse_file_prefix(file):
+    separator = '-'
+    datafile = re.compile("datafile_(.+){}folds".format(separator)).search(file).group(1)
+    folds = int(re.compile("folds_(.+){}embedder".format(separator)).search(file).group(1))
+
+    if 'embedding_rate' in file:
+        embedder = re.compile("embedder_(.+){}embedding_rate".format(separator)).search(file).group(1)
+        embedding_size_rate = float(re.compile("embedding_rate_(.+){}embedding".format(separator)).search(file).group(1))
+    else:
+        embedder = re.compile("embedder_(.+){}embedding_size".format(separator)).search(file).group(1)
+        embedding_size_rate = int(re.compile("embedding_size_(.+){}embedding".format(separator)).search(file).group(1))
+
+    embedding_trainable = re.compile("embedding_trainable_(.+){}rnn_cells".format(separator)).search(file).group(1) == 'True'
+    seed = int(re.compile("seed_(.+)$").search(file).group(1))
+
+    return {'datafile': datafile,
+            'folds': folds,
+            'embedder': embedder,
+            'embedding_rate': embedding_size_rate if 'embedding_rate' in file else None,
+            'embedding_size': embedding_size_rate if 'embedding_size' in file else None,
+            'embedding_trainable': embedding_trainable,
+            'seed': seed}
