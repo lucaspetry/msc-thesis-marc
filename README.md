@@ -5,7 +5,7 @@ This repository contains the scripts and processed data files used in the experi
 - **Author:** Lucas May Petry
 - **Supervisor:** [Dr. Vania Bogorny](https://www.inf.ufsc.br/~vania.bogorny/)
 - **Where:** [Federal University of Santa Catarina](http://ufsc.br)
-- **Thesis Link:** TO BE ANNOUNCED
+- **Thesis Link:** [Click here](./MasterThesis_LucasMayPetry.pdf)
 
 ## Summary
 
